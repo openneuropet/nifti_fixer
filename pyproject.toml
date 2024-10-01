@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "niftifixer"
+version = "0.0.0"
+description = "Fixes Nifti's"
+authors = ["Anthony Galassi <28850131+bendhouseart@users.noreply.github.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.10, <3.13"
+nibabel = "^5.2.1"
+
+
+[tool.poetry.group.dev.dependencies]
+ipython = "^8.27.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
