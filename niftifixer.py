@@ -47,7 +47,7 @@ class GetNiftiInfo():
         else:
             return False
         
-    def make_t1w_3D(self, average_runs=False, first_run_only=False, delete_original=False, rename_original=False):
+    def make_t1w_3D(self, first_run_only=False, delete_original=False, rename_original=False):
         if self.is_single_volume:
             return self.nifti
         else:
@@ -68,11 +68,12 @@ class GetNiftiInfo():
                 new_run = nib.Nifti1Image(self.nifti.get_fdata()[:,:,:,frame], affine=self.nifti.affine, header=self.nifti.header)
                 
                 # no reason to save run numbers if there's only one run
-                if first_run_only or average_runs:
+                if first_run_only:
                     out_name = self.nifti_path.replace("_run-01", "")
-                if delete_original or (first_run_only or average_runs):
-                    pathlib.Path(self.nifti_path).unlink()
                 nib.save(new_run, out_name)
+            
+            if delete_original or first_run_only:
+                pathlib.Path(self.nifti_path).unlink()
             
             if rename_original:
                 nib.save(self.nifti, "original_" + pathlib.Path(self.nifti_path).name)
@@ -82,7 +83,6 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Fix nifti files')
     parser.add_argument('path', type=str, help='Path to nifti files')
-    parser.add_argument('--average_runs', action='store_true', default=False, help='Merge runs into a single file')
     parser.add_argument('--first_run_only', action='store_true', default=False, help='Only use the first run')
     parser.add_argument('--delete_original', action='store_true', default=False, help='Delete the original file')
     args = parser.parse_args()
@@ -103,7 +103,7 @@ if __name__ == '__main__':
             print(bad_t1w)
         raw_input = input('Would you like to fix these files? [y/n]: ')
         if 'y' in str(raw_input).lower():
-            if args.delete_original or args.average_runs or args.first_run_only:
+            if args.delete_original or args.first_run_only:
                 print("You've selected an option that will delete the original file, this cannot be undone")
                 for bad_t1w in bad_t1ws:
                     print(f"The following original files will be deleted {bad_t1w}")
