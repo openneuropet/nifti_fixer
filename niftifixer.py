@@ -112,7 +112,7 @@ if __name__ == '__main__':
                     exit(1)
             for bad_t1w in bad_t1ws:
                 nii_info = GetNiftiInfo(bad_t1w)
-                nii_info.make_t1w_3D(args.average_runs, args.first_run_only, delete_original=args.delete_original)
+                nii_info.make_t1w_3D(args.first_run_only, delete_original=args.delete_original)
     elif nifti_path.is_file():
         nii_info = GetNiftiInfo(nifti_path)
         if not nii_info.is_3D:
