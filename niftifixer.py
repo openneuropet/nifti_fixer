@@ -3,13 +3,15 @@ import nibabel as nib
 import numpy as np
 import pathlib
 import argparse
+from itertools import chain
 
 def locate_t1ws(path):
     t1ws = []
     for root, dirs, files in walk(path):
         for file in files:
-            if file.endswith('_T1w.nii.gz') or file.endswith('_T1w.nii'):
-                t1ws.append(root + '/' + file)
+            if file.endswith('.nii.gz') or file.endswith('nii'):
+                if 't1' in file.lower() or '3d' in file.lower() or 'anat' in file.lower():
+                    t1ws.append(root + '/' + file)
     return t1ws
 
 class GetNiftiInfo():
@@ -53,30 +55,69 @@ class GetNiftiInfo():
         else:
             # get the number of frames
             num_frames = self.shape[3]
+            
+            # first check to see if the frames are identical in contents/pixel values
+            # if they are we choose one of them and save it as a 3D volume skipping the rest
+            frames_to_compare = {}
+            are_equal = []
+            frame_num = 0
+            while frame_num < num_frames:
+                current_frame = self.nifti.get_fdata()[:,:,:,frame_num]
+                other_frames = [f for f in range(self.shape[3])]
+                other_frames.remove(frame_num)
+                for next_frame_num in other_frames:
+                    next_frame = self.nifti.get_fdata()[:,:,:,next_frame_num]
+                    if np.array_equal(current_frame, next_frame):
+                        are_equal.append((frame_num, next_frame_num))
+                frame_num += 1
+
+            print(f'Found {len(are_equal)} identical frames')
+            if len(are_equal) > 0:
+                print(f'Frames that are identical: {are_equal}')
+
+            # check to see if all frames are identical
+            if len(are_equal) == 0:
+                # if all frames are identical set first_run_only to True
+                use_these_frames = [f for f in range(self.shape[3])]
+            elif 0 < len(are_equal) < (self.shape[3]):
+                # pop any frames that are equal and only write out the ones that are not as individual runs
+                remove_these = list(set(list(chain.from_iterable(are_equal))))
+                print(f'Frames to remove: {remove_these}')
+                # we want to keep one of these frames
+                if set(remove_these) == set(range(self.shape[3])):
+                    use_these_runs = [0]
+                # remove any duplicates
+                else:
+                    use_these_runs = [f for f in range(len(self.shape[3])) if f not in remove_these]
+            else:
+                # if all frames are identical set first_run_only to True
+                use_these_runs = [0]
+
             if first_run_only:
-                num_frames = 1
-            # combine all frames into a single 3D volume
-            for frame in range(num_frames):
+                use_these_runs = [0]
+
+            for frame in use_these_runs:
                 # create a new file name for each frame labeling it with the frame number as run number
                 # instead of the original file name, if _T1w is present in the filename then place 
-                # run- in front of _T1w, otherwise place run- in front of the .nii 
-                if '_T1w' in pathlib.Path(self.nifti_path).name:
-                    out_name = self.nifti_path.replace('_T1w', f'_run-0{frame + 1}_T1w')
+                # run- in front of _T1w, otherwise place run- in front of the .nii
+                if len(use_these_runs) > 1:
+                    if '_T1w' in pathlib.Path(self.nifti_path).name:
+                        out_name = self.nifti_path.replace('_T1w', f'_run-0{frame + 1}_T1w')
+                    else:
+                        out_name = self.nifti_path.replace('.nii', f'_run-0{frame + 1}.nii')
                 else:
-                    out_name = self.nifti_path.replace('.nii', f'_run-0{frame + 1}.nii')
+                    out_name = self.nifti_path
 
                 new_run = nib.Nifti1Image(self.nifti.get_fdata()[:,:,:,frame], affine=self.nifti.affine, header=self.nifti.header)
-                
-                # no reason to save run numbers if there's only one run
-                if first_run_only:
-                    out_name = self.nifti_path.replace("_run-01", "")
+
                 nib.save(new_run, out_name)
             
-            if delete_original or first_run_only:
+            if delete_original and len(are_equal) > 0:
                 pathlib.Path(self.nifti_path).unlink()
             
             if rename_original:
                 nib.save(self.nifti, "original_" + pathlib.Path(self.nifti_path).name)
+            
             return None
 
 if __name__ == '__main__':
