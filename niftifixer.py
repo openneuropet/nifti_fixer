@@ -120,8 +120,9 @@ class GetNiftiInfo():
             
             return None
 
-if __name__ == '__main__':
 
+
+def cli():
     parser = argparse.ArgumentParser(description='Fix nifti files')
     parser.add_argument('path', type=str, help='Path to nifti files')
     parser.add_argument('--first_run_only', action='store_true', default=False, help='Only use the first run')
@@ -164,3 +165,7 @@ if __name__ == '__main__':
     else:
         print(f'The path {nifti_path} is not a file or directory')
         exit(1)
+
+
+if __name__ == '__main__':
+    cli()
