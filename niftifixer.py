@@ -4,6 +4,8 @@ import numpy as np
 import pathlib
 import argparse
 from itertools import chain
+from nibabel.processing import conform
+from pathlib import Path
 
 def locate_t1ws(path):
     t1ws = []
@@ -38,7 +40,6 @@ class GetNiftiInfo():
                 self.is_single_volume = True
             else:
                 self.is_single_volume = False
-            return False
         else:
             self.is_3D = False
             return False
@@ -51,6 +52,11 @@ class GetNiftiInfo():
         
     def make_t1w_3D(self, first_run_only=False, delete_original=False, rename_original=False):
         if self.is_single_volume:
+            # conform to 3D array
+            new_nii = nib.Nifti1Image(self.nifti.get_fdata()[:,:,:,0], affine=self.nifti.affine, header=self.nifti.header)
+            new_nii.header.ndim = 3
+            new_nii.header['descrip'] = f"{Path(self.nifti_path).name} T1w 3D image"
+            nib.save(new_nii, self.nifti_path)
             return self.nifti
         else:
             # get the number of frames
