@@ -84,7 +84,7 @@ class GetNiftiInfo():
             # check to see if all frames are identical
             if len(are_equal) == 0:
                 # if all frames are identical set first_run_only to True
-                use_these_frames = [f for f in range(self.shape[3])]
+                use_these_runs = [f for f in range(self.shape[3])]
             elif 0 < len(are_equal) < (self.shape[3]):
                 # pop any frames that are equal and only write out the ones that are not as individual runs
                 remove_these = list(set(list(chain.from_iterable(are_equal))))
